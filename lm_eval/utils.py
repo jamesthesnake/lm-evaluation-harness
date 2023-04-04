@@ -5,8 +5,9 @@ import collections
 import functools
 import inspect
 import sys
-import pytest
 from typing import List
+
+from omegaconf import OmegaConf
 
 
 class ExitCodeError(Exception):
@@ -28,10 +29,7 @@ def simple_parse_args_string(args_string):
     if not args_string:
         return {}
     arg_list = args_string.split(",")
-    args_dict = {}
-    for arg in arg_list:
-        k, v = arg.split("=")
-        args_dict[k] = v
+    args_dict = OmegaConf.to_object(OmegaConf.from_dotlist(arg_list))
     return args_dict
 
 
@@ -114,10 +112,8 @@ def get_rolling_token_windows(token_list, prefix_token, max_seq_len, context_len
 
 def make_disjoint_window(pair):
     """Takes output from get_rolling_token_windows and makes the context not overlap with the continuation"""
-
     a, b = pair
-
-    return a[: -(len(b) - 1)], b
+    return a[: len(a) - (len(b) - 1)], b
 
 
 class Reorderer:
@@ -189,6 +185,8 @@ def run_task_tests(task_list: List[str]):
     """
     Find the package root and run the tests for the given tasks
     """
+    import pytest
+
     package_root = find_test_root(start_path=pathlib.Path(__file__))
     task_string = " or ".join(task_list)
     args = [

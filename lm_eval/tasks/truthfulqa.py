@@ -19,14 +19,20 @@ we could try this?
 
 Homepage: https://github.com/sylinrl/TruthfulQA
 """
-import inspect
 import numpy as np
 import sacrebleu
 import datasets
-import lm_eval.datasets.truthfulqa.truthfulqa
 from rouge_score import rouge_scorer, scoring
 from lm_eval.base import rf, Task
 from lm_eval.metrics import mean
+
+
+try:
+    import bleurt
+
+    HAS_BLEURT = True
+except ImportError:
+    HAS_BLEURT = False
 
 
 _CITATION = """
@@ -60,7 +66,7 @@ QA_PROMPT = (
 
 class TruthfulQAMultipleChoice(Task):
     VERSION = 1
-    DATASET_PATH = inspect.getfile(lm_eval.datasets.truthfulqa.truthfulqa)
+    DATASET_PATH = "truthful_qa"
     DATASET_NAME = "multiple_choice"
 
     def has_training_docs(self):
@@ -161,11 +167,17 @@ class TruthfulQAMultipleChoice(Task):
 
 class TruthfulQAGeneration(Task):
     VERSION = 1
-    DATASET_PATH = inspect.getfile(lm_eval.datasets.truthfulqa.truthfulqa)
+    DATASET_PATH = "truthful_qa"
     DATASET_NAME = "generation"
 
     def __init__(self):
         super().__init__()
+        if not HAS_BLEURT:
+            raise ImportError(
+                "`TruthfulQAGeneration` requires the `bleurt` package. Please install it with:\n"
+                "pip install bleurt@https://github.com/google-research/bleurt/archive/b610120347ef22b494b6d69b4316e303f5932516.zip#egg=bleurt"
+                "\nWARNING: Installing any other version of bleurt may result in different results."
+            )
         self.bleurt = datasets.load_metric("bleurt")
 
     def has_training_docs(self):
