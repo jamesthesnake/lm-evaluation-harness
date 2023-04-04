@@ -1,5 +1,5 @@
-import transformers
 import torch
+import transformers
 from lm_eval.base import BaseLM
 
 
@@ -9,6 +9,7 @@ class HFLM(BaseLM):
         device="cuda",
         pretrained="gpt2",
         revision="main",
+        low_cpu_mem_usage=None,
         subfolder=None,
         tokenizer=None,
         batch_size=1,
@@ -34,17 +35,16 @@ class HFLM(BaseLM):
             )
 
         # TODO: update this to be less of a hack once subfolder is fixed in HF
+        revision = revision + ("/" + subfolder if subfolder is not None else "")
+
         self.gpt2 = transformers.AutoModelForCausalLM.from_pretrained(
-            pretrained,
-            revision=revision + ("/" + subfolder if subfolder is not None else ""),
+            pretrained, revision=revision, low_cpu_mem_usage=low_cpu_mem_usage
         ).to(self.device)
         self.gpt2.eval()
 
-        # pretrained tokenizer for neo is broken for now so just hard-coding this to gpt2
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             pretrained if tokenizer is None else tokenizer,
             revision=revision,
-            subfolder=subfolder,
         )
 
         assert isinstance(
@@ -119,7 +119,7 @@ class HFLM(BaseLM):
         logits returned from the model
         """
         with torch.no_grad():
-            return self.gpt2(inps)[0][:, :, :50257]
+            return self.gpt2(inps)[0]
 
     def _model_generate(self, context, max_length, eos_token_id):
         return self.gpt2.generate(
